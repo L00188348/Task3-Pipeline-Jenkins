@@ -10,17 +10,23 @@
     "test:watch": "jest tests/ --watch",
     "test:coverage": "jest tests/ --coverage"
   },
-  "keywords": ["api", "tasks", "ci-cd", "jenkins", "express"],
+  "keywords": [
+    "api",
+    "tasks",
+    "ci-cd",
+    "jenkins",
+    "express"
+  ],
   "author": "Romulo",
   "license": "MIT",
   "dependencies": {
     "express": "^4.18.2",
-    "sqlite3": "^5.1.6"
+    "sqlite3": "^5.1.7"
   },
   "devDependencies": {
     "jest": "^29.7.0",
-    "supertest": "^6.3.3",
-    "nodemon": "^3.0.1"
+    "nodemon": "^3.0.1",
+    "supertest": "^6.3.3"
   },
   "jest": {
     "testEnvironment": "node",
