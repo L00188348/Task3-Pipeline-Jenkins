@@ -2,6 +2,8 @@
 # DEPENDENCIES AND BUILD
 # =============================================
 node_modules/          # Node.js dependencies - can be reinstalled via npm install
+Node_Modules/
+NODE_MODULES/
 npm-debug.log*         # NPM debug logs
 yarn-debug.log*        # Yarn debug logs
 yarn-error.log*        # Yarn error logs
@@ -47,3 +49,4 @@ Thumbs.db              # Windows thumbnails
 # DOCUMENTATION/EXAMPLES
 # =============================================
 Task3and4-Example-Pipeline(1).pdf  # Reference PDF from previous projects
+Task3and4-Example-Pipeline(1)
