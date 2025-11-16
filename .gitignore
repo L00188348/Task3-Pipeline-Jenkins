@@ -19,6 +19,7 @@ yarn-error.log*        # Yarn error logs
 # =============================================
 logs                   # Application logs folder
 *.log                  # Log files
+init-database.js      # Database initialization script
 
 # =============================================
 # OPERATING SYSTEM FILES
@@ -44,6 +45,12 @@ Thumbs.db              # Windows thumbnails
 # =============================================
 *.db                   # SQLite database files
 *.sqlite               # SQLite database files
+database/              # Database files folder
+
+# =============================================
+# COVERAGE REPORTS
+# =============================================
+coverage/              # Coverage reports folder
 
 # =============================================
 # DOCUMENTATION/EXAMPLES

@@ -6,9 +6,10 @@
   "scripts": {
     "start": "node src/app.js",
     "dev": "nodemon src/app.js",
-    "test": "jest tests/ --verbose",
-    "test:watch": "jest tests/ --watch",
-    "test:coverage": "jest tests/ --coverage"
+    "test": "jest --verbose --coverage",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "init-db": "node init-database.js"
   },
   "keywords": [
     "api",
