@@ -1,0 +1,31 @@
+{
+  "name": "task3-pipeline-jenkins",
+  "version": "1.0.0",
+  "description": "Task Management API with complete CI/CD Pipeline",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
+    "test": "jest tests/ --verbose",
+    "test:watch": "jest tests/ --watch",
+    "test:coverage": "jest tests/ --coverage"
+  },
+  "keywords": ["api", "tasks", "ci-cd", "jenkins", "express"],
+  "author": "Romulo",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "sqlite3": "^5.1.6"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3",
+    "nodemon": "^3.0.1"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "coveragePathIgnorePatterns": [
+      "/node_modules/"
+    ]
+  }
+}

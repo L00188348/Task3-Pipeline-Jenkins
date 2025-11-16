@@ -1,4 +1,3 @@
-cat > .gitignore << 'EOF'
 # =============================================
 # DEPENDENCIES AND BUILD
 # =============================================
@@ -47,5 +46,4 @@ Thumbs.db              # Windows thumbnails
 # =============================================
 # DOCUMENTATION/EXAMPLES
 # =============================================
-Task3and4-Example-Pipeline(1).pdf  # Reference PDF from previous project
-EOF
+Task3and4-Example-Pipeline(1).pdf  # Reference PDF from previous projects
