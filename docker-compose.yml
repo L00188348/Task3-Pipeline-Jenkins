@@ -1,0 +1,41 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  jenkins:
+    build:
+      context: .
+      dockerfile: Dockerfile.jenkins
+    container_name: jenkins-ci-cd
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./:/var/jenkins_home/workspace/task3-pipeline
+    environment:
+      - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
+    networks:
+      - ci-cd-network
+
+  application:
+    build:
+      context: .
+      dockerfile: Dockerfile  # Agora aponta para SEU Dockerfile multi-stage
+    container_name: task3-application
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - jenkins
+    networks:
+      - ci-cd-network
+
+networks:
+  ci-cd-network:
+    driver: bridge
+
+volumes:
+  jenkins_home:
