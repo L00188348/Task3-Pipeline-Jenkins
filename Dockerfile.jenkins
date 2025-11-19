@@ -20,5 +20,5 @@ RUN usermod -aG docker jenkins
 
 USER jenkins
 
-# Install Jenkins plugins
-RUN jenkins-plugin-cli --plugins git github pipeline docker-workflow blueocean
+# Plugins installation
+RUN jenkins-plugin-cli --plugins git github workflow-aggregator docker-workflow blueocean pipeline-model-definition credentials-binding
