@@ -336,52 +336,17 @@
         </div>
     </div>
 
-    <!-- Task Modal -->
-    <div class="modal fade" id="taskModal" tabindex="-1" role="dialog" aria-labelledby="taskModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="taskModalLabel">New Task</h5>
-                    <button class="close" type="button" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">×</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <form id="taskForm">
-                        <div class="form-group">
-                            <label for="taskTitle">Title *</label>
-                            <input type="text" class="form-control" id="taskTitle" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="taskDescription">Description</label>
-                            <textarea class="form-control" id="taskDescription" rows="3"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label for="taskStatus">Status</label>
-                            <select class="form-control" id="taskStatus">
-                                <option value="pending">Pending</option>
-                                <option value="in-progress">In Progress</option>
-                                <option value="completed">Completed</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="taskPriority">Priority</label>
-                            <select class="form-control" id="taskPriority">
-                                <option value="low">Low</option>
-                                <option value="medium" selected>Medium</option>
-                                <option value="high">High</option>
-                            </select>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" type="button" data-dismiss="modal">Cancel</button>
-                    <button class="btn btn-primary" id="saveTask">Save Task</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- Include Task Modal -->
+    <div id="task-modal-container"></div>
 
+    <script>
+        // Load modal component
+        fetch('partials/task-modal.html')
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('task-modal-container').innerHTML = html;
+            });
+    </script>
     <!-- Bootstrap core JavaScript-->
     <script src="vendor/jquery/jquery.min.js"></script>
     <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
