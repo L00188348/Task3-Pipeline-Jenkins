@@ -10,7 +10,10 @@ const header = require("gulp-header");
 const merge = require("merge-stream");
 const plumber = require("gulp-plumber");
 const rename = require("gulp-rename");
-const sass = require("gulp-sass");
+
+// ⚠️ ESSA LINHA FORÇA O USO DO COMPILADOR DART SASS (pacote 'sass') ⚠️
+const sass = require("gulp-sass")(require("sass"));
+
 const uglify = require("gulp-uglify");
 
 // Load package.json for banner
@@ -85,7 +88,7 @@ function css() {
   return gulp
     .src("./scss/**/*.scss")
     .pipe(plumber())
-    .pipe(sass({
+    .pipe(sass({ // O gulp-sass usará o compilador Dart Sass configurado acima
       outputStyle: "expanded",
       includePaths: "./node_modules",
     }))
