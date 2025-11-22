@@ -1,8 +1,19 @@
-# Defines the services to be managed by Docker Compose
+# docker-compose.yml
+# Defines the services to be managed by Docker Compose and persistent volumes/networks.
+# This compose brings up Jenkins (custom image built from Dockerfile.jenkins),
+# the application image (built from Dockerfile), SonarQube and a Postgres DB for SonarQube.
+
+version: "3.8"
+
 services:
+  # Jenkins service
   jenkins:
-    # Uses a long-term support version of Jenkins
-    image: jenkins/jenkins:lts
+    # Builds a custom Jenkins image from Dockerfile.jenkins so we can include
+    # docker CLI and Node.js inside the Jenkins container for convenience.
+    build:
+      context: .
+      dockerfile: Dockerfile.jenkins
+    image: custom-jenkins:latest
     container_name: jenkins-ci-cd
     ports:
       # Standard Jenkins web interface port
@@ -12,7 +23,7 @@ services:
     volumes:
       # Persistent storage for Jenkins configuration, jobs, and build history
       - jenkins_home:/var/jenkins_home
-      # Allows Jenkins to execute Docker commands on the host (Docker-in-Docker setup)
+      # Allows Jenkins to execute Docker commands on the host (Docker-in-Docker style via socket)
       - /var/run/docker.sock:/var/run/docker.sock
       # Mounts the project directory into the Jenkins workspace for pipeline execution
       - ./:/var/jenkins_home/workspace/task3-pipeline
@@ -20,7 +31,9 @@ services:
     user: root
     networks:
       - ci-cd-network
+    restart: unless-stopped
 
+  # Application service
   application:
     # Builds the application image using the current context and the specified Dockerfile
     build:
@@ -38,11 +51,12 @@ services:
       - jenkins
     networks:
       - ci-cd-network
+    restart: unless-stopped
 
-  # NEW SERVICE: SONARQUBE
+  # SonarQube service (analysis)
   sonarqube:
     # Uses the official SonarQube LTS community edition image
-    image: sonarqube:lts-community 
+    image: sonarqube:lts-community
     container_name: sonarqube-analysis
     ports:
       # Maps the SonarQube web dashboard port to access it at http://localhost:9000
@@ -50,15 +64,34 @@ services:
     environment:
       # Required for SonarQube to start correctly when using a volume mount
       - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
-      # Default credentials for the internal H2 database (admin: admin/admin)
-      - SONARQUBE_JDBC_USERNAME=sonar
-      - SONARQUBE_JDBC_PASSWORD=sonar
+      # JDBC settings to use Postgres (see sonar-db service below)
+      - SONAR_JDBC_URL=jdbc:postgresql://sonar-db:5432/sonarqube
+      - SONAR_JDBC_USERNAME=sonar
+      - SONAR_JDBC_PASSWORD=sonar
     volumes:
-      # Persistent storage for SonarQube data, configuration, and logs
-      - sonarqube_data:/opt/sonarqube/data 
+      # Persistent storage for SonarQube data and extensions
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+    depends_on:
+      - sonar-db
     networks:
       - ci-cd-network
-    # DEPENDENCY ON 'database' REMOVED HERE, as it was not defined.
+    restart: unless-stopped
+
+  # PostgreSQL database for SonarQube
+  sonar-db:
+    # Postgres is recommended for SonarQube production/dev use
+    image: postgres:14
+    container_name: sonarqube-postgres
+    environment:
+      - POSTGRES_USER=sonar
+      - POSTGRES_PASSWORD=sonar
+      - POSTGRES_DB=sonarqube
+    volumes:
+      - sonarqube_db_data:/var/lib/postgresql/data
+    networks:
+      - ci-cd-network
+    restart: unless-stopped
 
 # Network definition for inter-container communication
 networks:
@@ -68,5 +101,6 @@ networks:
 # Volume definitions for persistent data storage
 volumes:
   jenkins_home:
-  # NEW VOLUME: Volume for persisting SonarQube data
   sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_db_data:
