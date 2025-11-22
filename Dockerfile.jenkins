@@ -1,13 +1,11 @@
 # Dockerfile.jenkins
-# Custom Jenkins image based on official LTS with Docker CLI and Node.js preinstalled.
-# Useful for local CI where Jenkins needs to build Docker images or run Node-based steps.
+# Custom Jenkins image based on official LTS with Docker CLI, Node.js and SonarScanner preinstalled.
 
 FROM jenkins/jenkins:lts-jdk17
 
 USER root
 
 # Install basic utilities, Docker CLI and container runtime client, and Node.js 18.
-# We install docker CLI (not full docker daemon) because we mount the host docker socket.
 RUN apt-get update && \
     apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release unzip git jq && \
     mkdir -p /etc/apt/keyrings && \
@@ -18,17 +16,26 @@ RUN apt-get update && \
     apt-get install -y docker-ce-cli containerd.io && \
     rm -rf /var/lib/apt/lists/*
 
-# Install Node.js 18 (NodeSource) to provide node and npm inside the Jenkins container.
+# Install Node.js 18 (NodeSource)
 RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
     apt-get update && \
     apt-get install -y nodejs && \
     rm -rf /var/lib/apt/lists/*
 
-# Give jenkins user access to docker socket (when /var/run/docker.sock is mounted).
+# Add jenkins user to docker group (for mounted host docker socket)
 RUN usermod -aG docker jenkins
+
+# Install SonarScanner CLI
+RUN wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.1.2.36157-linux.zip \
+    && unzip sonar-scanner-cli-5.1.2.36157-linux.zip -d /opt/ \
+    && ln -s /opt/sonar-scanner-5.1.2.36157-linux/bin/sonar-scanner /usr/bin/sonar-scanner \
+    && rm sonar-scanner-cli-5.1.2.36157-linux.zip
+
+# Set environment variables for SonarScanner
+ENV SONAR_SCANNER_HOME=/opt/sonar-scanner-5.1.2.36157-linux
+ENV PATH=$SONAR_SCANNER_HOME/bin:$PATH
 
 USER jenkins
 
-# Install common Jenkins plugins using jenkins-plugin-cli.
-# Adjust the plugin list as needed for your pipelines.
+# Install common Jenkins plugins
 RUN jenkins-plugin-cli --plugins git github workflow-aggregator docker-workflow blueocean pipeline-model-definition credentials-binding

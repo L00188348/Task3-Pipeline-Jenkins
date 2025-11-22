@@ -1,18 +1,16 @@
 pipeline {
-    // Specifies the agent to execute the pipeline (runs on the main Jenkins agent)
+    // Executes the pipeline on any available agent
     agent any
     
-    // Defines environment variables used throughout the pipeline
+    // Environment variables for Docker and SonarQube
     environment { 
         IMAGE_NAME = 'task3-application'
-        // Configuration name set up in Jenkins Global Tool Configuration
         SONAR_SERVER = 'SonarQube_Server_Config' 
-        // SonarQube project key (must match SonarQube UI)
         SONAR_PROJECT_KEY = 'task-management-api' 
     }
     
     stages {
-        // Stage 1: Checkout the code from the Git repository
+        // Stage 1: Checkout the code
         stage('Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/L00188348/Task3-Pipeline-Jenkins.git'
@@ -20,78 +18,77 @@ pipeline {
             }
         }
         
-        // Stage 2: Build and test the Frontend application (if applicable)
+        // Stage 2: Build Frontend using NodeJS tool
         stage('Build Frontend') {
             steps {
-                dir('frontend') {
-                    sh 'npm install'
-                    // Run tests; continues even if tests fail (non-blocking test)
-                    sh 'npm test || echo "⚠️ Frontend tests failed - continuing..."' 
-                    sh 'npm run build'
+                nodejs('NodeJS_18') {
+                    dir('frontend') {
+                        sh 'npm install'
+                        // Non-blocking tests: log errors but continue
+                        sh 'npm test || echo "⚠️ Frontend tests failed - continuing..."'
+                        sh 'npm run build'
+                    }
                 }
             }
         }
         
-        // Stage 3: Build and test the Backend application
-        stage('Build Backend') {
+        // Stage 3: Build Backend
+                stage('Build Backend') {
             steps {
-                dir('backend') {
-                    sh 'npm install'
-                    // Run tests; continues even if tests fail (non-blocking test)
-                    sh 'npm test || echo "⚠️ Backend tests failed - continuing..."'
-                    sh 'npm run build'
-                }
-            }
-        }
-        
-        // Stage 4: Code Quality Analysis (SECURELY INJECTS TOKEN)
-        // This stage runs the SonarQube Scanner against the backend code
-        stage('Code Quality Analysis') {
-            steps {
-                // Use the withCredentials block to securely load the secret token
-                // NOTE: 'SONAR_AUTH_TOKEN' must match the ID created in Jenkins Credentials
-                withCredentials([string(credentialsId: 'SONAR_AUTH_TOKEN', variable: 'SONAR_TOKEN')]) {
-                    // Uses the SonarQube plugin to inject the server URL (from SONAR_SERVER config)
-                    withSonarQubeEnv(env.SONAR_SERVER) { 
-                        dir('backend') {
-                            // Execute the Sonar Scanner CLI for the backend code
-                            sh """
-                                sonar-scanner \\
-                                    -Dsonar.projectKey=${SONAR_PROJECT_KEY} \\
-                                    -Dsonar.sources=./ \\
-                                    -Dsonar.projectName='Task Management API' \\
-                                    -Dsonar.login=${SONAR_TOKEN}
-                            """
-                        }
+                nodejs('NodeJS_18') {
+                    dir('backend') {
+                        sh 'npm install'
+                        sh 'npm test || echo "⚠️ Backend tests failed - continuing..."'
+                        sh 'npm run build'
                     }
                 }
             }
         }
 
-        // Stage 5: Quality Gate Check (NEW STAGE)
-        // This stage blocks the pipeline until SonarQube confirms the code passed the quality rules.
+        
+        // Stage 4: Code Quality Analysis
+        stage('Code Quality Analysis') {
+            steps {
+                dir('backend') {
+                    // Configura o SonarQube environment automaticamente
+                    withSonarQubeEnv('SonarQube_Server_Config') {
+                        sh """
+                            docker run --rm \
+                            -v \$(pwd):/usr/src \
+                            -v \$HOME/.sonar/cache:/root/.sonar/cache \
+                            sonarsource/sonar-scanner-cli \
+                            -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                            -Dsonar.sources=./ \
+                            -Dsonar.projectName="Task Management API" \
+                            -Dsonar.login=$SONAR_AUTH_TOKEN \
+                            -Dsonar.host.url=$SONAR_HOST_URL
+                        """
+                    }
+                }
+            }
+        }
+
+
+
+        // Stage 5: Quality Gate Check
         stage('Quality Gate Check') {
             steps {
-                // Wait up to 5 minutes for the SonarQube analysis to complete and check the Quality Gate status.
                 timeout(time: 5, unit: 'MINUTES') { 
-                    // Fails the pipeline immediately if the Quality Gate is not passed
                     waitForQualityGate abortPipeline: true 
                 }
             }
         }
         
-        // Stage 6: Create the Docker image
+        // Stage 6: Build Docker image
         stage('Docker Build') {
             steps {
-                // Builds the Docker image using the Dockerfile in the root context
                 sh "docker build -t ${IMAGE_NAME}:${env.BUILD_ID} ."
             }
         }
         
-        // Stage 7: Deploy the new Docker container
+        // Stage 7: Deploy Docker container
         stage('Deploy') {
             steps {
-                // Stop and remove any existing container, then run the new image
                 sh '''
                     docker stop task3-application || true
                     docker rm task3-application || true
@@ -100,16 +97,15 @@ pipeline {
             }
         }
         
-        // Stage 8: Verify the deployment is successful
+        // Stage 8: Smoke Test
         stage('Smoke Test') {
             steps {
-                // Waits 10 seconds for the app to start, then checks if it responds on port 3000
                 sh 'sleep 10 && curl -f http://localhost:3000 && echo "🎉 CI/CD WORKING!" || echo "⚠️ App did not respond yet"'
             }
         }
     }
     
-    // Post-build actions (always runs)
+    // Post-build actions
     post {
         always {
             echo "Pipeline ${currentBuild.result} - Build #${env.BUILD_NUMBER}"
