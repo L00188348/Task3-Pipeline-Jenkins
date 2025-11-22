@@ -5,9 +5,9 @@ FROM jenkins/jenkins:lts-jdk17
 
 USER root
 
-# Install basic utilities, Docker CLI and container runtime client, and Node.js 18.
+# Install basic utilities, Docker CLI and container runtime client
 RUN apt-get update && \
-    apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release unzip git jq && \
+    apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release unzip git jq wget && \
     mkdir -p /etc/apt/keyrings && \
     curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" \
@@ -22,17 +22,18 @@ RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
     apt-get install -y nodejs && \
     rm -rf /var/lib/apt/lists/*
 
-# Add jenkins user to docker group (for mounted host docker socket)
-RUN usermod -aG docker jenkins
+# Create docker group if it doesn't exist and add jenkins user
+RUN groupadd docker || true && \
+    usermod -aG docker jenkins
 
-# Install SonarScanner CLI
-RUN wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.1.2.36157-linux.zip \
-    && unzip sonar-scanner-cli-5.1.2.36157-linux.zip -d /opt/ \
-    && ln -s /opt/sonar-scanner-5.1.2.36157-linux/bin/sonar-scanner /usr/bin/sonar-scanner \
-    && rm sonar-scanner-cli-5.1.2.36157-linux.zip
+# Install latest SonarScanner CLI (update link if needed)
+RUN wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.12.0.43144-linux.zip && \
+    unzip sonar-scanner-cli-5.12.0.43144-linux.zip -d /opt/ && \
+    ln -s /opt/sonar-scanner-5.12.0.43144-linux/bin/sonar-scanner /usr/bin/sonar-scanner && \
+    rm sonar-scanner-cli-5.12.0.43144-linux.zip
 
 # Set environment variables for SonarScanner
-ENV SONAR_SCANNER_HOME=/opt/sonar-scanner-5.1.2.36157-linux
+ENV SONAR_SCANNER_HOME=/opt/sonar-scanner-5.12.0.43144-linux
 ENV PATH=$SONAR_SCANNER_HOME/bin:$PATH
 
 USER jenkins
