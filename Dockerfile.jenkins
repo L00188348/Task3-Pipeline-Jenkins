@@ -26,7 +26,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
 RUN groupadd docker || true && \
     usermod -aG docker jenkins
 
-# Install latest SonarScanner CLI (update link if needed)
+# Install latest SonarScanner CLI
 RUN wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.12.0.43144-linux.zip && \
     unzip sonar-scanner-cli-5.12.0.43144-linux.zip -d /opt/ && \
     ln -s /opt/sonar-scanner-5.12.0.43144-linux/bin/sonar-scanner /usr/bin/sonar-scanner && \
@@ -39,4 +39,5 @@ ENV PATH=$SONAR_SCANNER_HOME/bin:$PATH
 USER jenkins
 
 # Install common Jenkins plugins
-RUN jenkins-plugin-cli --plugins git github workflow-aggregator docker-workflow blueocean pipeline-model-definition credentials-binding
+RUN jenkins-plugin-cli --plugins \
+    git github workflow-aggregator docker-workflow blueocean pipeline-model-definition credentials-binding nodejs
