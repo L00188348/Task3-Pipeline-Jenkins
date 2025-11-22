@@ -1,35 +1,72 @@
+# Defines the services to be managed by Docker Compose
 services:
   jenkins:
+    # Uses a long-term support version of Jenkins
     image: jenkins/jenkins:lts
     container_name: jenkins-ci-cd
     ports:
+      # Standard Jenkins web interface port
       - "8080:8080"
+      # Port for Jenkins agents (JEP-200)
       - "50000:50000"
     volumes:
+      # Persistent storage for Jenkins configuration, jobs, and build history
       - jenkins_home:/var/jenkins_home
+      # Allows Jenkins to execute Docker commands on the host (Docker-in-Docker setup)
       - /var/run/docker.sock:/var/run/docker.sock
+      # Mounts the project directory into the Jenkins workspace for pipeline execution
       - ./:/var/jenkins_home/workspace/task3-pipeline
+    # Runs the Jenkins container as root to enable Docker interaction via the mounted socket
     user: root
     networks:
       - ci-cd-network
 
   application:
+    # Builds the application image using the current context and the specified Dockerfile
     build:
       context: .
       dockerfile: Dockerfile
     container_name: task3-application
     ports:
+      # Maps the application's internal port to the host machine
       - "3000:3000"
     environment:
+      # Sets the application environment variable
       - NODE_ENV=production
+    # Ensures Jenkins is running before attempting to start the application (for local setup)
     depends_on:
       - jenkins
     networks:
       - ci-cd-network
 
+  # NEW SERVICE: SONARQUBE
+  sonarqube:
+    # Uses the official SonarQube LTS community edition image
+    image: sonarqube:lts-community 
+    container_name: sonarqube-analysis
+    ports:
+      # Maps the SonarQube web dashboard port to access it at http://localhost:9000
+      - "9000:9000"
+    environment:
+      # Required for SonarQube to start correctly when using a volume mount
+      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+      # Default credentials for the internal H2 database (admin: admin/admin)
+      - SONARQUBE_JDBC_USERNAME=sonar
+      - SONARQUBE_JDBC_PASSWORD=sonar
+    volumes:
+      # Persistent storage for SonarQube data, configuration, and logs
+      - sonarqube_data:/opt/sonarqube/data 
+    networks:
+      - ci-cd-network
+    # DEPENDENCY ON 'database' REMOVED HERE, as it was not defined.
+
+# Network definition for inter-container communication
 networks:
   ci-cd-network:
     driver: bridge
 
+# Volume definitions for persistent data storage
 volumes:
   jenkins_home:
+  # NEW VOLUME: Volume for persisting SonarQube data
+  sonarqube_data:
