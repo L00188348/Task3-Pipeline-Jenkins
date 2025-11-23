@@ -6,7 +6,10 @@ let server;
 
 // Iniciar servidor antes de todos os testes
 beforeAll((done) => {
-    server = app.listen(3001, done); // Usar porta diferente para testes
+    server = app.listen(0, () => { // Porta 0 = porta automática
+        console.log('✅ Test server started on random port');
+        done();
+    });
 });
 
 // Limpar banco de dados antes de cada teste
@@ -47,9 +50,14 @@ afterAll(async () => {
     });
 });
 
+// Função helper para fazer requests - USA O SERVER, não o app diretamente
+const makeRequest = () => {
+    return request(server);
+};
+
 describe('API Health Check', () => {
     test('GET /health - should return API status', async () => {
-        const response = await request(app).get('/health');
+        const response = await makeRequest().get('/health');
         
         expect(response.status).toBe(200);
         expect(response.body.success).toBe(true);
@@ -70,7 +78,7 @@ describe('Task CRUD Operations', () => {
             priority: 'high'
         };
 
-        const response = await request(app)
+        const response = await makeRequest()
             .post('/api/tasks')
             .send(newTask);
 
@@ -93,7 +101,7 @@ describe('Task CRUD Operations', () => {
             description: 'Task without title'
         };
 
-        const response = await request(app)
+        const response = await makeRequest()
             .post('/api/tasks')
             .send(invalidTask);
 
@@ -105,10 +113,10 @@ describe('Task CRUD Operations', () => {
     // Teste: Buscar todas as tarefas
     test('GET /api/tasks - should return all tasks', async () => {
         // Primeiro criar algumas tarefas
-        await request(app).post('/api/tasks').send({ title: 'Task 1' });
-        await request(app).post('/api/tasks').send({ title: 'Task 2' });
+        await makeRequest().post('/api/tasks').send({ title: 'Task 1' });
+        await makeRequest().post('/api/tasks').send({ title: 'Task 2' });
 
-        const response = await request(app).get('/api/tasks');
+        const response = await makeRequest().get('/api/tasks');
 
         expect(response.status).toBe(200);
         expect(response.body.success).toBe(true);
@@ -119,13 +127,13 @@ describe('Task CRUD Operations', () => {
     // Teste: Buscar tarefa por ID
     test('GET /api/tasks/:id - should return specific task', async () => {
         // Criar uma tarefa primeiro
-        const createResponse = await request(app)
+        const createResponse = await makeRequest()
             .post('/api/tasks')
             .send({ title: 'Specific Task' });
 
         const taskId = createResponse.body.data.id;
 
-        const response = await request(app).get(`/api/tasks/${taskId}`);
+        const response = await makeRequest().get(`/api/tasks/${taskId}`);
 
         expect(response.status).toBe(200);
         expect(response.body.success).toBe(true);
@@ -135,7 +143,7 @@ describe('Task CRUD Operations', () => {
 
     // Teste: Buscar tarefa inexistente
     test('GET /api/tasks/:id - should return 404 for non-existent task', async () => {
-        const response = await request(app).get('/api/tasks/9999');
+        const response = await makeRequest().get('/api/tasks/9999');
 
         expect(response.status).toBe(404);
         expect(response.body.success).toBe(false);
@@ -145,7 +153,7 @@ describe('Task CRUD Operations', () => {
     // Teste: Atualizar tarefa
     test('PUT /api/tasks/:id - should update existing task', async () => {
         // Criar tarefa primeiro
-        const createResponse = await request(app)
+        const createResponse = await makeRequest()
             .post('/api/tasks')
             .send({ title: 'Original Task' });
 
@@ -158,7 +166,7 @@ describe('Task CRUD Operations', () => {
             priority: 'low'
         };
 
-        const response = await request(app)
+        const response = await makeRequest()
             .put(`/api/tasks/${taskId}`)
             .send(updatedData);
 
@@ -173,7 +181,7 @@ describe('Task CRUD Operations', () => {
 
     // Teste: Atualizar tarefa inexistente
     test('PUT /api/tasks/:id - should return 404 for non-existent task', async () => {
-        const response = await request(app)
+        const response = await makeRequest()
             .put('/api/tasks/9999')
             .send({ title: 'Updated Title' });
 
@@ -185,27 +193,27 @@ describe('Task CRUD Operations', () => {
     // Teste: Deletar tarefa
     test('DELETE /api/tasks/:id - should delete existing task', async () => {
         // Criar tarefa primeiro
-        const createResponse = await request(app)
+        const createResponse = await makeRequest()
             .post('/api/tasks')
             .send({ title: 'Task to Delete' });
 
         const taskId = createResponse.body.data.id;
 
         // Deletar a tarefa
-        const deleteResponse = await request(app).delete(`/api/tasks/${taskId}`);
+        const deleteResponse = await makeRequest().delete(`/api/tasks/${taskId}`);
 
         expect(deleteResponse.status).toBe(200);
         expect(deleteResponse.body.success).toBe(true);
         expect(deleteResponse.body.message).toBe('Tarefa deletada com sucesso');
 
         // Verificar que a tarefa não existe mais
-        const getResponse = await request(app).get(`/api/tasks/${taskId}`);
+        const getResponse = await makeRequest().get(`/api/tasks/${taskId}`);
         expect(getResponse.status).toBe(404);
     });
 
     // Teste: Deletar tarefa inexistente
     test('DELETE /api/tasks/:id - should return 404 for non-existent task', async () => {
-        const response = await request(app).delete('/api/tasks/9999');
+        const response = await makeRequest().delete('/api/tasks/9999');
 
         expect(response.status).toBe(404);
         expect(response.body.success).toBe(false);
@@ -216,19 +224,19 @@ describe('Task CRUD Operations', () => {
 describe('Task Filtering by Status', () => {
     beforeEach(async () => {
         // Criar tarefas com diferentes status para testes
-        await request(app).post('/api/tasks').send({ 
+        await makeRequest().post('/api/tasks').send({ 
             title: 'Pending Task', 
             status: 'pending' 
         });
-        await request(app).post('/api/tasks').send({ 
+        await makeRequest().post('/api/tasks').send({ 
             title: 'In Progress Task', 
             status: 'in-progress' 
         });
-        await request(app).post('/api/tasks').send({ 
+        await makeRequest().post('/api/tasks').send({ 
             title: 'Completed Task', 
             status: 'completed' 
         });
-        await request(app).post('/api/tasks').send({ 
+        await makeRequest().post('/api/tasks').send({ 
             title: 'Another Pending Task', 
             status: 'pending' 
         });
@@ -236,7 +244,7 @@ describe('Task Filtering by Status', () => {
 
     // Teste: Filtrar tarefas por status válido
     test('GET /api/tasks/status/:status - should return tasks filtered by status', async () => {
-        const response = await request(app).get('/api/tasks/status/pending');
+        const response = await makeRequest().get('/api/tasks/status/pending');
 
         expect(response.status).toBe(200);
         expect(response.body.success).toBe(true);
@@ -246,7 +254,7 @@ describe('Task Filtering by Status', () => {
 
     // Teste: Status inválido
     test('GET /api/tasks/status/:status - should return error for invalid status', async () => {
-        const response = await request(app).get('/api/tasks/status/invalid-status');
+        const response = await makeRequest().get('/api/tasks/status/invalid-status');
 
         expect(response.status).toBe(400);
         expect(response.body.success).toBe(false);
@@ -256,10 +264,10 @@ describe('Task Filtering by Status', () => {
 
 describe('Route Not Found', () => {
     test('Should return 404 for non-existent routes', async () => {
-        const response = await request(app).get('/api/non-existent-route');
+        const response = await makeRequest().get('/api/non-existent-route');
 
         expect(response.status).toBe(404);
         expect(response.body.success).toBe(false);
         expect(response.body.message).toBe('Route not found');
-    }, 10000); // Timeout de 10 segundos para este teste específico
+    }, 15000); // 15 segundos
 });

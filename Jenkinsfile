@@ -27,11 +27,11 @@ pipeline {
                     
                     script {
                         catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
-                            echo "🧪 Executando testes do frontend..."
+                            echo "🧪 Running frontend tests..."
                             sh 'npm test'
                             
-                            echo "🔍 Executando auditoria de segurança..."
-                            sh 'npm run security || echo "⚠️ Vulnerabilidades encontradas no frontend"'
+                            echo "🔍 Running security audit..."
+                            sh 'npm run security || echo "⚠️ Vulnerabilities found in frontend"'
                         }
                     }
                     
@@ -47,21 +47,18 @@ pipeline {
                     sh 'npm install'
                     
                     script {
-                        catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
-                            echo "🧪 Executando testes do banco de dados..."
-                            sh 'npm run test:db'
-                            
-                            echo "🧪 Executando testes da API..."
-                            // Usando test:api:all que tem timeout maior (15s)
-                            sh 'npm run test:api:all || echo "⚠️ Alguns testes podem ter falhado, mas continuando pipeline..."'
-                        }
+                        echo "🧪 Running database tests..."
+                        sh 'npm run test:db'
                         
-                        echo "🔍 Executando auditoria de segurança..."
-                        sh 'npm run security || echo "⚠️ Security audit com problemas"'
+                        echo "🧪 Running API tests..."
+                        sh 'npm run test:api:all'
+                        
+                        echo "🔍 Running security audit..."
+                        sh 'npm run security'
                     }
                     
-                    // Garantir que cobertura é gerada mesmo com testes instáveis
-                    sh 'npm run test:coverage 2>/dev/null || echo "⚠️ Cobertura pode estar incompleta"'
+                    echo "📊 Generating coverage report..."
+                    sh 'npm run test:coverage'
                 }
             }
         }
@@ -70,30 +67,28 @@ pipeline {
             steps {
                 dir('backend') {
                     script {
-                        catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
-                            withSonarQubeEnv(env.SONAR_SERVER) {
-                                sh '''
-                                    echo "📊 Configurando SonarQube..."
-                                    
-                                    # Configuração otimizada para SonarQube
-                                    echo "sonar.projectKey=task-management-api" > sonar-project.properties
-                                    echo "sonar.sources=." >> sonar-project.properties
-                                    echo "sonar.projectName=Task Management API" >> sonar-project.properties
-                                    echo "sonar.host.url=$SONAR_HOST_URL" >> sonar-project.properties
-                                    echo "sonar.token=$SONAR_AUTH_TOKEN" >> sonar-project.properties
-                                    echo "sonar.coverage.exclusions=**/node_modules/**,**/tests/**" >> sonar-project.properties
-                                    echo "sonar.javascript.lcov.reportPaths=coverage/lcov.info" >> sonar-project.properties
-                                    echo "sonar.scm.disabled=true" >> sonar-project.properties
-                                    echo "sonar.tests=tests" >> sonar-project.properties
-                                    echo "sonar.test.inclusions=**/*.test.js" >> sonar-project.properties
-                                    
-                                    echo "🔐 Token configurado (usando sonar.token)"
-                                    echo "🌐 SonarQube URL: $SONAR_HOST_URL"
-                                    
-                                    # Executa análise
-                                    sonar-scanner
-                                '''
-                            }
+                        withSonarQubeEnv(env.SONAR_SERVER) {
+                            sh '''
+                                echo "📊 Configuring SonarQube..."
+                                
+                                # Optimized configuration for SonarQube
+                                echo "sonar.projectKey=task-management-api" > sonar-project.properties
+                                echo "sonar.sources=." >> sonar-project.properties
+                                echo "sonar.projectName=Task Management API" >> sonar-project.properties
+                                echo "sonar.host.url=$SONAR_HOST_URL" >> sonar-project.properties
+                                echo "sonar.token=$SONAR_AUTH_TOKEN" >> sonar-project.properties
+                                echo "sonar.coverage.exclusions=**/node_modules/**,**/tests/**" >> sonar-project.properties
+                                echo "sonar.javascript.lcov.reportPaths=coverage/lcov.info" >> sonar-project.properties
+                                echo "sonar.scm.disabled=true" >> sonar-project.properties
+                                echo "sonar.tests=tests" >> sonar-project.properties
+                                echo "sonar.test.inclusions=**/*.test.js" >> sonar-project.properties
+                                
+                                echo "🔐 Token configured (using sonar.token)"
+                                echo "🌐 SonarQube URL: $SONAR_HOST_URL"
+                                
+                                # Execute analysis
+                                sonar-scanner
+                            '''
                         }
                     }
                 }
@@ -103,10 +98,8 @@ pipeline {
         stage('Quality Gate Check') {
             steps {
                 script {
-                    catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
-                        timeout(time: 2, unit: 'MINUTES') {
-                            waitForQualityGate abortPipeline: false
-                        }
+                    timeout(time: 2, unit: 'MINUTES') {
+                        waitForQualityGate abortPipeline: false
                     }
                 }
             }
@@ -115,30 +108,30 @@ pipeline {
         stage('Application Deploy') {
             steps {
                 script {
-                    echo "🚀 Iniciando aplicação Node.js..."
+                    echo "🚀 Starting Node.js application..."
                     dir('backend') {
                         sh '''
-                            # Para qualquer instância anterior de forma mais robusta
+                            # Stop any previous instances more robustly
                             pkill -f "node.*src/app.js" || true
                             pkill -f "node.*3000" || true
                             sleep 3
                             
-                            # Inicia a aplicação de forma controlada
+                            # Start the application in controlled manner
                             nohup npm start > app.log 2>&1 &
                             echo $! > /tmp/app.pid
                             
-                            # Aguarda inicialização com verificação
-                            echo "⏳ Aguardando aplicação iniciar..."
+                            # Wait for initialization with verification
+                            echo "⏳ Waiting for application to start..."
                             for i in {1..30}; do
                                 if curl -s http://localhost:3000/health > /dev/null; then
-                                    echo "✅ Aplicação iniciada com sucesso!"
+                                    echo "✅ Application started successfully!"
                                     break
                                 fi
                                 sleep 1
                             done
                             
                             BACKGROUND_PID=$(cat /tmp/app.pid)
-                            echo "📱 Aplicação rodando em background (PID: $BACKGROUND_PID)"
+                            echo "📱 Application running in background (PID: $BACKGROUND_PID)"
                             echo "🔗 Health check: http://localhost:3000/health"
                         '''
                     }
@@ -149,28 +142,26 @@ pipeline {
         stage('Smoke Test') {
             steps {
                 script {
-                    catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
-                        sh '''
-                            echo "🚀 Executando smoke tests..."
-                            
-                            # Teste de health check básico
-                            echo "1. Testando endpoint /health..."
-                            curl -f -s http://localhost:3000/health && echo "✅ Health check OK"
-                            
-                            # Teste de criação de task
-                            echo "2. Testando criação de task..."
-                            curl -X POST http://localhost:3000/api/tasks \
-                                -H "Content-Type: application/json" \
-                                -d '{"title":"Smoke Test Task"}' \
-                                -s -w "HTTP Status: %{http_code}\n" || echo "⚠️ Teste de criação falhou"
-                            
-                            # Teste de listagem de tasks
-                            echo "3. Testando listagem de tasks..."
-                            curl -s http://localhost:3000/api/tasks | grep -q "success" && echo "✅ Listagem OK" || echo "⚠️ Listagem falhou"
-                            
-                            echo "🎉 Smoke tests concluídos!"
-                        '''
-                    }
+                    sh '''
+                        echo "🚀 Running smoke tests..."
+                        
+                        # Basic health check test
+                        echo "1. Testing /health endpoint..."
+                        curl -f -s http://localhost:3000/health && echo "✅ Health check OK"
+                        
+                        # Task creation test
+                        echo "2. Testing task creation..."
+                        curl -X POST http://localhost:3000/api/tasks \
+                            -H "Content-Type: application/json" \
+                            -d '{"title":"Smoke Test Task"}' \
+                            -s -w "HTTP Status: %{http_code}\n"
+                        
+                        # Task listing test
+                        echo "3. Testing task listing..."
+                        curl -s http://localhost:3000/api/tasks | grep -q "success" && echo "✅ Listing OK" || echo "⚠️ Listing failed"
+                        
+                        echo "🎉 Smoke tests completed!"
+                    '''
                 }
             }
         }
@@ -181,50 +172,49 @@ pipeline {
             echo "Pipeline ${currentBuild.result} - Build #${env.BUILD_NUMBER}"
             
             script {
-                // Limpeza robusta de processos
+                // Robust cleanup of processes
                 sh '''
-                    echo "🧹 Executando limpeza..."
+                    echo "🧹 Performing cleanup..."
                     
-                    # Para processo principal
+                    # Stop main process
                     if [ -f /tmp/app.pid ]; then
                         PID=$(cat /tmp/app.pid)
-                        echo "🛑 Parando processo principal (PID: $PID)"
+                        echo "🛑 Stopping main process (PID: $PID)"
                         kill $PID 2>/dev/null || true
                         rm -f /tmp/app.pid
                     fi
                     
-                    # Para qualquer processo Node.js relacionado
-                    echo "🛑 Parando processos Node.js..."
+                    # Stop any related Node.js processes
+                    echo "🛑 Stopping Node.js processes..."
                     pkill -f "node.*src/app.js" 2>/dev/null || true
                     pkill -f "node.*3000" 2>/dev/null || true
                     
-                    # Limpeza de arquivos temporários
+                    # Clean temporary files
                     rm -f backend/app.log 2>/dev/null || true
                     
-                    echo "✅ Limpeza concluída"
+                    echo "✅ Cleanup completed"
                 '''
             }
         }
         
         success {
-            echo "✅ PIPELINE CONCLUÍDO COM SUCESSO!"
-            echo "📊 Relatório SonarQube: http://localhost:9000/dashboard?id=task-management-api"
-            echo "🎯 Cobertura de testes: ~86%"
-            echo "🚀 Aplicação testada e validada"
+            echo "✅ PIPELINE COMPLETED SUCCESSFULLY!"
+            echo "📊 SonarQube Report: http://localhost:9000/dashboard?id=task-management-api"
+            echo "🎯 Test Coverage: ~86%"
+            echo "🚀 Application tested and validated"
         }
         
         failure {
-            echo "❌ Pipeline falhou - verifique os logs"
-            echo "🔍 Dica: Verifique se todos os serviços estão rodando (SonarQube, etc.)"
+            echo "❌ Pipeline failed - check logs"
+            echo "🔍 Tip: Verify all services are running (SonarQube, etc.)"
         }
         
         unstable {
-            echo "⚠️ Pipeline concluído com avisos"
-            echo "📋 Possíveis causas:"
-            echo "   - Testes com timeout (Route Not Found)"
-            echo "   - Vulnerabilidades npm"
-            echo "   - Cobertura de testes incompleta"
-            echo "💡 A aplicação principal está funcionando, mas verifique os detalhes"
+            echo "⚠️ Pipeline completed with warnings"
+            echo "📋 Possible causes:"
+            echo "   - Frontend vulnerabilities"
+            echo "   - Security audit issues"
+            echo "💡 Main application is functional, but check details"
         }
     }
 }
