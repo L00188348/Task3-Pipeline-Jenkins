@@ -5,10 +5,13 @@ const path = require('path');
 const app = express();
 
 // Middleware
-app.use(express.json());
+app.use(express.json({
+    strict: true
+}));
+
 app.use(express.urlencoded({ extended: true }));
 
-// Servir arquivos estáticos do frontend (CSS, JS, imagens)
+// Servir arquivos estáticos do frontend
 app.use(express.static(path.join(__dirname, '../../frontend')));
 
 // Health Check Route
@@ -24,42 +27,39 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/api/tasks', taskRoutes);
 
-// Rota para servir o index.html do frontend para qualquer rota não-API
-app.get('*', (req, res) => {
-    // Verificar se a rota não começa com /api ou /health
-    if (!req.path.startsWith('/api') && req.path !== '/health') {
-        res.sendFile(path.join(__dirname, '../../frontend/index.html'));
-    }
-});
-
-// 404 Handler para rotas API
-app.use('*', (req, res) => {
-    if (req.path.startsWith('/api')) {
-        res.status(404).json({
-            success: false,
-            message: 'Route not found'
-        });
-    }
-});
-
-// Error Handling Middleware
-app.use((err, req, res, next) => {
-    console.error('Error:', err.stack);
-    res.status(500).json({
+// Middleware de 404 para APIs
+app.use('/api/*', (req, res) => {
+    res.status(404).json({
         success: false,
-        message: 'Internal Server Error',
-        error: process.env.NODE_ENV === 'production' ? {} : err.message
+        message: 'Route not found'
     });
 });
 
+// Servir frontend para rotas não-API
+app.get('*', (req, res, next) => {
+    if (!req.path.startsWith('/api') && req.path !== '/health') {
+        return res.sendFile(path.join(__dirname, '../../frontend/index.html'));
+    }
+    next();
+});
+
+// Middleware 404 global (fallback) - SIMPLIFICADO
+app.use('*', (req, res) => {
+    res.status(404).json({
+        success: false,
+        message: 'Route not found'
+    });
+});
+
+
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`🔗 Health check: http://localhost:${PORT}/health`);
-    console.log(`🎨 Frontend: http://localhost:${PORT}`);
-    console.log(`📋 API Tasks: http://localhost:${PORT}/api/tasks`);
-});
+// Exportar app SEM iniciar servidor nos testes
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`🚀 Server running on port ${PORT}`);
+        console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+    });
+}
 
 module.exports = app;
