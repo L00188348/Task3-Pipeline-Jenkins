@@ -37,18 +37,19 @@ pipeline {
             steps {
                 dir('backend') {
                     sh 'npm install'
+                    
                     script {
-                        catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
-                            sh '''
-                                echo "🧪 Executando testes do banco de dados..."
-                                npx jest tests/database.test.js --verbose --coverage --forceExit --detectOpenHandles --testTimeout=10000
-                                
-                                echo "🧪 Executando testes da API (exceto o problemático)..."
-                                npx jest tests/app.test.js --testNamePattern="^(?!.*Route Not Found)" --verbose --coverage --forceExit --detectOpenHandles --testTimeout=10000
-                            '''
+                        catchError {
+                            echo "🧪 Executando testes do banco de dados..."
+                            sh 'npm run test:db'
+                            
+                            echo "🧪 Executando testes da API..."
+                            sh 'npm run test:api'
                         }
                     }
-                    sh 'npm run build'
+                    
+                    // Ou execute todos os testes de uma vez
+                    sh 'npm test'
                 }
             }
         }
