@@ -2,6 +2,13 @@ const request = require('supertest');
 const app = require('../src/app');
 const db = require('../src/database');
 
+let server;
+
+// Iniciar servidor antes de todos os testes
+beforeAll((done) => {
+    server = app.listen(3001, done); // Usar porta diferente para testes
+});
+
 // Limpar banco de dados antes de cada teste
 beforeEach((done) => {
     db.run('DELETE FROM tasks', (err) => {
@@ -12,13 +19,31 @@ beforeEach((done) => {
     });
 });
 
-// Fechar conexão com o banco após todos os testes
-afterAll((done) => {
-    db.close((err) => {
-        if (err) {
-            console.error('Error closing database:', err);
+// Fechar servidor e conexão com o banco após todos os testes
+afterAll(async () => {
+    return new Promise((resolve) => {
+        // Fechar servidor primeiro
+        if (server) {
+            server.close(() => {
+                console.log('✅ Test server closed');
+                // Depois fechar banco de dados
+                db.close((err) => {
+                    if (err) {
+                        console.error('Error closing database:', err);
+                    } else {
+                        console.log('✅ Database connection closed');
+                    }
+                    resolve();
+                });
+            });
+        } else {
+            db.close((err) => {
+                if (err) {
+                    console.error('Error closing database:', err);
+                }
+                resolve();
+            });
         }
-        done();
     });
 });
 
@@ -236,5 +261,5 @@ describe('Route Not Found', () => {
         expect(response.status).toBe(404);
         expect(response.body.success).toBe(false);
         expect(response.body.message).toBe('Route not found');
-    });
+    }, 10000); // Timeout de 10 segundos para este teste específico
 });

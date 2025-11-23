@@ -4,8 +4,18 @@
   "version": "4.1.3",
   "scripts": {
     "start": "gulp watch",
+    "dev": "gulp watch",
     "build": "gulp build",
-    "default": "gulp"
+    "clean": "gulp clean",
+    "default": "gulp",
+    
+    "test": "echo 'No tests configured for frontend' && exit 0",
+    "test:ci": "echo 'No tests in CI pipeline' && exit 0",
+    "lint": "echo 'No linter configured' || true",
+    "lint:fix": "echo 'No linter configured' || true",
+    "security": "npm audit --audit-level high",
+    "audit": "npm audit",
+    "audit:fix": "npm audit fix"
   },
   "description": "An open source Bootstrap 4 admin theme.",
   "keywords": [
