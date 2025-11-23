@@ -15,8 +15,13 @@
     "lint:fix": "echo 'No linter configured' || true",
     "security": "npm audit --audit-level high",
     "audit": "npm audit",
-    "audit:fix": "npm audit fix"
+    "audit:fix": "npm audit fix",
+    "e2e": "playwright test",
+    "e2e:headed": "playwright test --headed",
+    "e2e:debug": "playwright test --debug",
+    "e2e:report": "playwright show-report"
   },
+  
   "description": "An open source Bootstrap 4 admin theme.",
   "keywords": [
     "css",
