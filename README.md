@@ -1,109 +1,132 @@
-# 🚀 Task Management API: Pipeline de CI/CD com Jenkins
+# 🚀 Task Management API: CI/CD Pipeline with Jenkins
 
-## Sumário
-* [Visão Geral do Projeto](#visão-geral-do-projeto)
-* [🛠️ Tecnologias Principais](#️-tecnologias-principais)
-* [Pré-requisitos](#pré-requisitos)
-* [📂 Estrutura do Repositório](#-estrutura-do-repositório)
-* [🚀 Guia de Execução Local](#-guia-de-execução-local)
-* [Detalhes da Pipeline CI/CD](#detalhes-da-pipeline-cicd)
-* [Acesso aos Serviços](#acesso-aos-serviços)
-
-***
-
-## Visão Geral do Projeto
-
-Este projeto demonstra uma completa **Pipeline de Integração Contínua e Entrega Contínua (CI/CD)**, utilizando **Jenkins** e **Docker**. O objetivo é automatizar a construção, teste, análise de qualidade e deploy de uma **API de Gerenciamento de Tarefas**.
-
-A arquitetura é orquestrada pelo **Docker Compose**, integrando quatro serviços essenciais: o servidor Jenkins, a API da aplicação, o SonarQube para análise de código estática e um banco de dados PostgreSQL dedicado ao SonarQube.
-
-!
-
-[Image of CI/CD Pipeline flow diagram]
-
+## Summary
+* [Project Overview](#project-overview)
+* [🛠️ Main Technologies](#️-main-technologies)
+* [Prerequisites](#prerequisites)
+* [📂 Repository Structure](#-repository-structure)
+* [🚀 Local Execution Guide](#-local-execution-guide)
+* [CI/CD Pipeline Details](#cicd-pipeline-details)
+* [Service Access](#service-access)
 
 ***
 
-### 🛠️ Tecnologias Principais
+## Project Overview
 
-| Componente | Tecnologia | Descrição |
-| :--- | :--- | :--- |
-| **Orquestração CI/CD** | **Jenkins (Containerizado)** | Servidor de automação que executa o `Jenkinsfile`. Expõe a porta **8080**. |
-| **Análise de Qualidade** | **SonarQube LTS Community** | Ferramenta para análise estática e Quality Gate. Expõe a porta **9000**. |
-| **Containerização** | **Docker & Docker Compose (v3.8)** | Gerenciamento de rede (`ci-cd-network`) e orquestração de todos os serviços. |
-| **Backend API** | **Node.js 18** e **SQLite** (para testes) | O serviço principal para gerenciamento das tarefas. Expõe a porta **3000**. |
-| **Database** | **PostgreSQL 14** | Banco de dados dedicado para o serviço SonarQube. |
-| **Pipeline Definition** | **Groovy (`Jenkinsfile`)** | Define 7 estágios sequenciais de CI/CD. |
+This project demonstrates a complete **Continuous Integration and Continuous Delivery (CI/CD) Pipeline**, using **Jenkins** and **Docker**. The objective is to automate building, testing, code quality analysis, and deployment of a **Task Management API**.
 
-***
+The architecture is orchestrated by **Docker Compose**, integrating four essential services: the Jenkins server, the application API, SonarQube for static code analysis, and a PostgreSQL database dedicated to SonarQube.
 
-## Pré-requisitos
-
-Para executar este projeto localmente, você precisa ter as seguintes ferramentas instaladas e configuradas:
-
-1.  **Git:** Para clonar o repositório.
-2.  **Docker:** Versão recente.
-3.  **Docker Compose:** Versão 1.28.0 ou superior.
+### Solution Architecture
+GitHub → Jenkins → [Build → Test → Analyze → Deploy] → Application
+↓
+SonarQube (Quality)
+↓
+PostgreSQL (Metrics)
 
 ***
 
-## 📂 Estrutura do Repositório
+## 🛠️ Technology Stack
 
-| Arquivo/Diretório | Descrição |
-| :--- | :--- |
-| `backend/` | Contém o código-fonte da **API de Gerenciamento de Tarefas**. Inclui testes de API e Database com `supertest` e `SQLite`. |
-| `frontend/` | Contém o código do frontend (Baseado no tema *SB Admin 2*). |
-| **`Jenkinsfile`** | Define a **Pipeline Declarativa** com 7 estágios, de `Checkout` a `Smoke Test`. **O coração da automação.** |
-| **`docker-compose.yml`** | Define os 4 serviços: `jenkins`, `application`, `sonarqube` e `sonar-db`. |
-| **`setup-jenkins.sh`** | Script *shell* para criar a rede Docker, reconstruir o ambiente e exibir a senha inicial do Jenkins. |
-| **`Dockerfile`** | Utiliza *Multi-Stage Build* para criar uma imagem de produção otimizada para a aplicação Node.js. |
-| **`Dockerfile.jenkins`** | Imagem Jenkins customizada, incluindo **Docker CLI**, **Node.js 18** e **SonarScanner** globalmente, essenciais para o pipeline. |
+| Layer | Technologies | Purpose |
+|--------|-------------|------------|
+| **CI/CD** | Jenkins, Docker, Docker Compose | Automation and orchestration |
+| **Quality** | SonarQube, PostgreSQL | Static analysis and metrics |
+| **Backend** | Node.js 18, Express, SQLite | REST Task API |
+| **Frontend** | Bootstrap, SB Admin 2 | Administrative interface |
+| **Testing** | Jest, Supertest | Automated tests |
+
+## ⚙️ Prerequisites
+
+- **Docker** 20.10+ 
+- **Docker Compose** 1.28+
+- **Git** 2.25+
 
 ***
 
-## 🚀 Guia de Execução Local
+## 📁 Project Structure
+Task3-Pipeline-Jenkins/
+├── 📁 backend/ # Node.js API
+│ ├── src/
+│ ├── tests/ # Tests
+│ └── package.json
+├── 📁 frontend/ # Web interface
+│ ├── scss/
+│ ├── js/
+│ └── package.json
+├── 🏗️ Jenkinsfile # CI/CD Pipeline (7 stages)
+├── 🐳 docker-compose.yml # Service orchestration
+├── 🔧 setup-jenkins.sh # Initialization script
+├── 📦 Dockerfile # Application image
+├── 🔨 Dockerfile.jenkins # Custom Jenkins image
+└── 📚 README.md
 
-Siga os passos abaixo para subir o ambiente completo usando os containers.
+## 🚀 Local Execution Guide
 
-### Passo 1: Clonar o Repositório
+Follow the steps below to spin up the entire environment using containers.
+
+### Step 1: Clone the Repository
 
 ```bash
-git clone [https://github.com/L00188348/Task3-Pipeline-Jenkins.git](https://github.com/L00188348/Task3-Pipeline-Jenkins.git)
+git clone https://github.com/L00188348/Task3-Pipeline-Jenkins.git
 cd Task3-Pipeline-Jenkins
-
-### Passo 2: Inicializar o Ambiente Docker
-
-Execute o script de *setup*. Ele irá criar a rede Docker (`ci-cd-network`), construir as imagens customizadas e iniciar todos os serviços.
-
-```bash
-# Conceda permissão de execução (se necessário)
 chmod +x setup-jenkins.sh
+```
 
-# Executa a inicialização, build e start dos containers em background
+### Step 2: Initialize Environment
+```bash
 ./setup-jenkins.sh
+```
+This script will:
 
-### Passo 3: Configurar e Executar a Pipeline
+✅ Create Docker network `ci-cd-network`
+✅ Build custom images
+✅ Start all services in the background
 
-Obter a Senha do Jenkins: Copie a senha exibida pelo script no console (ex: docker exec jenkins-ci-cd cat /var/jenkins_home/secrets/initialAdminPassword).
+🔑 Display the initial Jenkins password
 
-Acessar o Painel: Abra seu navegador e acesse http://localhost:8080.
+### Step 4: Configure and Run the Pipeline
 
-Setup Inicial: Use a senha para desbloquear o Jenkinse, crie um usuário administrador e instale os plugins SonarQube and NodeJS.
+Retrieve Jenkins Password: Copy the password displayed by the script in the console (example: `docker exec jenkins-ci-cd cat /var/jenkins_home/secrets/initialAdminPassword`).
 
-Criar Job: Configure um "Pipeline Job".
+Access the Dashboard: Open your browser and go to **http://localhost:8080**.
 
-Setup em definition, use "Pipeline script from SCM""
-      SCM = Git and on Repository URL: https://github.com/L00188348/Task3-Pipeline-Jenkins
-      Branch Specifier (blank for 'any'): */main
+Initial Setup: Use the password to unlock Jenkins, create an admin user, and install the **SonarQube** and **NodeJS** plugins.
 
+Create a Job: Configure a **Pipeline Job**.
 
-Executar: Inicie o Job para começar o fluxo de CI/CD.
+Under *Definition*, select **Pipeline script from SCM**:
+```
+SCM = Git
+Repository URL: https://github.com/L00188348/Task3-Pipeline-Jenkins
+Branch Specifier: */main
+```
 
-#	Estágio	Tarefas Principais
-1	Checkout	Clona o código do main branch.
-2	Build Frontend	Instala dependências, executa auditoria de segurança (npm audit) e realiza o build (npm run build).
-3	Build Backend	Instala dependências, executa Testes de API e Database. Gera o relatório de cobertura de testes.
-4	Code Quality Analysis	Executa o sonar-scanner e envia os dados (incluindo cobertura) para o SonarQube (http://localhost:9000).
-5	Quality Gate Check	Verifica o status do Quality Gate no SonarQube. A pipeline só avança se o Quality Gate for aprovado.
-6	Application Deploy	Inicia a aplicação Node.js (npm start) em background dentro do container do Jenkins.
-7	Smoke Test	Executa testes pós-deploy (Health Check e validação de CRUD) contra a aplicação em http://localhost:3000.
+Run: Start the job to trigger the CI/CD flow.
+
+# Stage | Main Tasks
+1 | Checkout | Clones the code from the main branch.
+2 | Build Frontend | Installs dependencies, runs security audit (npm audit), and builds the frontend (npm run build).
+3 | Build Backend | Installs dependencies, runs API and Database tests. Generates test coverage reports.
+4 | Code Quality Analysis | Runs sonar-scanner and sends data (including coverage) to SonarQube (http://localhost:9000).
+5 | Quality Gate Check | Verifies the Quality Gate status in SonarQube. The pipeline only proceeds if approved.
+6 | Application Deploy | Starts the Node.js application (npm start) in the background inside the Jenkins container.
+7 | Smoke Test | Executes post-deploy tests (Health Check and CRUD validation).
+
+### 🎭 Manual Application Execution:
+
+1. To run or test the application:
+```bash
+cd backend
+npm start
+```
+Visit: **http://localhost:3000**
+
+🔄 Development Flow
+Commit → Push to repository
+Trigger → Jenkins Pipeline starts automatically
+Build → Dependency installation and build
+Test → Test suite execution
+Analyze → SonarQube analysis
+Deploy → Automatic deploy if Quality Gate passes
+Verify → Smoke tests
